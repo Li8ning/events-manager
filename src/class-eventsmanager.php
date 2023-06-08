@@ -336,8 +336,13 @@ class EventsManager {
 	 */
 	public function get_events( $city_slug = array() ) {
 
-		$tax_query = array();
-		if ( ! empty( $city_slug ) ) {
+		if ( empty( $city_slug ) || in_array( 'all', $city_slug ) || 1 === count( $city_slug ) && 'all' === $city_slug[0] ) {
+			$tax_query = array(
+				'taxonomy' => 'cities',
+				'field'    => 'slug',
+			);
+		}
+		else {
 			$tax_query = array(
 				array(
 					'taxonomy' => 'cities',
@@ -375,9 +380,25 @@ class EventsManager {
 			<th>Event City</th>
 			<th>Event Photo</th>
 		</tr>';
-		if ( $posts_array->have_posts() ) {
-			while ( $posts_array->have_posts() ) {
-				$posts_array->the_post();
+		$html .= $this->fetch_events_into_html_table( $posts_array );
+		$html .= '</table>
+		<input type="hidden" id="totalpages" value="' . $posts_array->max_num_pages . '">
+		<div id="more_posts">Load More</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Display events into html table rows
+	 *
+	 * @param array $events_array Array of retrieved events
+	 * @return html
+	 */
+	public function fetch_events_into_html_table( $events_array ) {
+		$html = '';
+		if ( $events_array->have_posts() ) {
+			while ( $events_array->have_posts() ) {
+				$events_array->the_post();
 				$event_cities = implode( ',', wp_get_post_terms( get_the_ID(), 'cities', array( 'fields' => 'names' ) ) );
 				$html        .= '<tr>
 				<td>' . get_the_title() . '</td>
@@ -388,11 +409,8 @@ class EventsManager {
 				</tr>';
 			}
 		} else {
-			$html .= '<td colspan="4">No Events Found</td>';
+			$html .= '<td colspan="5">No Events Found</td>';
 		}
-		$html .= '</table>
-		<input type="hidden" id="totalpages" value="' . $posts_array->max_num_pages . '">
-		<div id="more_posts">Load More</div>';
 
 		return $html;
 	}
@@ -405,12 +423,13 @@ class EventsManager {
 	public function display_events( $atts ) {
 
 		// Parse shortcode attributes.
-		$args = shortcode_atts(
+		$city_args = shortcode_atts(
 			array(
 				'city' => 'all',
 			),
 			$atts
 		);
+		$cities = explode( ',', $city_args['city'] );
 		ob_start();
 		require_once plugin_dir_path( __FILE__ ) . '../templates/event-display.php';
 		return ob_get_clean();

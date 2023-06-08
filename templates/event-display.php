@@ -14,7 +14,7 @@ if ( class_exists( 'EventsManager\EventsManager' ) ) {
 	$events_manager = new EventsManager\EventsManager();
 
 	// Call the get_events from EventsManager.
-	$posts_array = $events_manager->get_events();
+	$posts_array = $events_manager->get_events( $cities );
 
 	// Call the get_events_cities from EventsManager.
 	$event_cities = $events_manager->get_events_cities();
@@ -43,7 +43,9 @@ if ( class_exists( 'EventsManager\EventsManager' ) ) {
 		array(
 			'table' => array(),
 			'th'    => array(),
-			'td'    => array(),
+			'td'    => array(
+				'colspan' => array(),
+			),
 			'tr'    => array(),
 			'img'   => array(
 				'src' => array(),
