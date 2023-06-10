@@ -13,7 +13,7 @@ td, th {
 tr:nth-child(even) {
 	background-color: #dddddd;
 }
-.select-city-container{
+.select-city-container, #more_posts{
 	display: flex;
 	align-content: center;
 }

@@ -54,6 +54,8 @@ class EventsManager {
 		add_shortcode( 'display_events', array( $this, 'display_events' ) );
 		add_action( 'wp_ajax_nopriv_get_events_ajax', array( $this, 'get_events_ajax' ) );
 		add_action( 'wp_ajax_get_events_ajax', array( $this, 'get_events_ajax' ) );
+		add_action( 'wp_ajax_nopriv_load_more_events_ajax', array( $this, 'load_more_events_ajax' ) );
+		add_action( 'wp_ajax_load_more_events_ajax', array( $this, 'load_more_events_ajax' ) );
 	}
 
 	/**
@@ -319,12 +321,12 @@ class EventsManager {
 
 		$html = '<div class="select-city-container">
 		<label for="event-city">Choose a city:</label>
-		<select name="event-city" id="event-city">';
+		<select name="event-city" id="event-city">
+		<option value="all">All</option>';
 		foreach ( $event_cities as $city ) {
 			$html .= '<option value="' . esc_html( $city->slug ) . '">' . esc_html( $city->name ) . '</option>';
 		}
-		$html .= '<option value="all">All</option>
-		</select>
+		$html .= '</select>
 		</div>';
 
 		return $html;
@@ -357,7 +359,7 @@ class EventsManager {
 		// Get Event Posts.
 		$event_posts_array = new WP_Query(
 			array(
-				'posts_per_page' => 5,
+				'posts_per_page' => 2,
 				'post_type'      => 'events',
 				'post_status'    => array( 'publish', 'pending', 'draft' ),
 				'tax_query'      => $tax_query,
@@ -385,7 +387,7 @@ class EventsManager {
 		$html .= $this->fetch_events_into_html_table( $posts_array );
 		$html .= '</tbody></table>
 		<input type="hidden" id="totalpages" value="' . $posts_array->max_num_pages . '">
-		<div id="more_posts">Load More</div>';
+		<button id="more_posts">Load More</button>';
 
 		return $html;
 	}
@@ -447,7 +449,7 @@ class EventsManager {
 		// Get Event Posts.
 		$event_posts_array = new WP_Query(
 			array(
-				'posts_per_page' => 5,
+				'posts_per_page' => 2,
 				'post_type'      => 'events',
 				'post_status'    => array( 'publish', 'pending', 'draft' ),
 				'tax_query'      => $tax_query,
@@ -456,10 +458,56 @@ class EventsManager {
 
 		$html = $this->fetch_events_into_html_table( $event_posts_array );
 
-		echo $html;
+		// Return the HTML and total pages as JSON
+		$response = array(
+			'html' => $html,
+			'total_pages' => $event_posts_array->max_num_pages,
+		);
+		wp_send_json_success( $response );
 
 		wp_die();
 
+	}
+
+	public function load_more_events_ajax() {
+
+		$page = (isset($_POST['pageNumber'])) ? $_POST['pageNumber'] : 0;
+		$city_name = (isset($_POST['city_name'])) ? $_POST['city_name'] : 'all';
+  
+		header("Content-Type: text/html");
+
+		if ( empty( $city_name ) || 'all' === $city_name ) {
+			$tax_query = array(
+				'taxonomy' => 'cities',
+				'field'    => 'slug',
+			);
+		}
+		else {
+			$tax_query = array(
+				array(
+					'taxonomy' => 'cities',
+					'field'    => 'slug',
+					'terms'    => $city_name,
+				),
+			);
+		}
+
+		// Get Event Posts.
+		$event_posts_array = new WP_Query(
+			array(
+				'suppress_filters' => true,
+				'post_type' => 'events',
+				'posts_per_page' => 2,
+				'paged' => $page,
+				'post_status'    => array( 'publish', 'pending', 'draft' ),
+				'tax_query'      => $tax_query,
+			)
+		);
+
+		$html = $this->fetch_events_into_html_table( $event_posts_array );
+
+		wp_reset_postdata();
+		die( $html );
 	}
 
 	/**

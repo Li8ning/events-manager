@@ -58,7 +58,7 @@ if ( class_exists( 'EventsManager\EventsManager' ) ) {
 				'id'    => array(),
 				'value' => array(),
 			),
-			'div'   => array(
+			'button'   => array(
 				'id' => array(),
 			),
 		)
