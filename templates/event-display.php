@@ -50,6 +50,9 @@ if ( class_exists( 'EventsManager\EventsManager' ) ) {
 			'img'   => array(
 				'src' => array(),
 			),
+			'tbody' => array(
+				'id' => array(),
+			),
 			'input' => array(
 				'type'  => array(),
 				'id'    => array(),

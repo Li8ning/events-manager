@@ -52,6 +52,8 @@ class EventsManager {
 		add_shortcode( 'event_registration_form', array( $this, 'render_event_registration_form' ) );
 		add_action( 'init', array( $this, 'handle_event_registration_form_submission' ) );
 		add_shortcode( 'display_events', array( $this, 'display_events' ) );
+		add_action( 'wp_ajax_nopriv_get_events_ajax', array( $this, 'get_events_ajax' ) );
+		add_action( 'wp_ajax_get_events_ajax', array( $this, 'get_events_ajax' ) );
 	}
 
 	/**
@@ -81,7 +83,7 @@ class EventsManager {
 		// Enqueue jquery ui styles.
 		wp_enqueue_style( 'jquery-ui-css', 'https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css', array(), '1.13.2' );
 
-		wp_enqueue_script( 'eventmanager-ajax', get_stylesheet_directory_uri() . '/assets/js/eventmanager-ajax.js', array( 'jquery' ), '1.0.0', true );
+		wp_enqueue_script( 'eventmanager-ajax', plugins_url( 'assets/js/eventmanager-ajax.js', dirname( __FILE__ ) ), array( 'jquery' ), '1.0.0', true );
 		// the_ajax_script will use to print admin-ajaxurl in custom ajax.js.
 		wp_localize_script( 'eventmanager-ajax', 'the_ajax_script', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 
@@ -355,7 +357,7 @@ class EventsManager {
 		// Get Event Posts.
 		$event_posts_array = new WP_Query(
 			array(
-				'posts_per_page' => 2,
+				'posts_per_page' => 5,
 				'post_type'      => 'events',
 				'post_status'    => array( 'publish', 'pending', 'draft' ),
 				'tax_query'      => $tax_query,
@@ -379,9 +381,9 @@ class EventsManager {
 			<th>Event Date</th>
 			<th>Event City</th>
 			<th>Event Photo</th>
-		</tr>';
+		</tr><tbody id="event-table">';
 		$html .= $this->fetch_events_into_html_table( $posts_array );
-		$html .= '</table>
+		$html .= '</tbody></table>
 		<input type="hidden" id="totalpages" value="' . $posts_array->max_num_pages . '">
 		<div id="more_posts">Load More</div>';
 
@@ -403,7 +405,7 @@ class EventsManager {
 				$html        .= '<tr>
 				<td>' . get_the_title() . '</td>
 				<td>' . get_the_content() . '</td>
-				<td>' . get_post_meta( get_the_ID(), 'event - date', true ) . '</td>
+				<td>' . get_post_meta( get_the_ID(), 'event-date', true ) . '</td>
 				<td>' . esc_html( $event_cities ) . '</td>
 				<td><img src="' . esc_url( get_the_post_thumbnail_url( get_the_ID(), 'thumbnail' ) ) . '" /></td>
 				</tr>';
@@ -413,6 +415,51 @@ class EventsManager {
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Ajax call to filter events
+	 *
+	 * @param string $city_name
+	 * @return html
+	 */
+	public function get_events_ajax( $city_name = '' ) {
+
+		// Retrieve the selected city value from the Ajax request
+		$city_name = sanitize_text_field($_GET['city_name']);
+
+		if ( empty( $city_name ) || 'all' === $city_name ) {
+			$tax_query = array(
+				'taxonomy' => 'cities',
+				'field'    => 'slug',
+			);
+		}
+		else {
+			$tax_query = array(
+				array(
+					'taxonomy' => 'cities',
+					'field'    => 'slug',
+					'terms'    => $city_name,
+				),
+			);
+		}
+
+		// Get Event Posts.
+		$event_posts_array = new WP_Query(
+			array(
+				'posts_per_page' => 5,
+				'post_type'      => 'events',
+				'post_status'    => array( 'publish', 'pending', 'draft' ),
+				'tax_query'      => $tax_query,
+			)
+		);
+
+		$html = $this->fetch_events_into_html_table( $event_posts_array );
+
+		echo $html;
+
+		wp_die();
+
 	}
 
 	/**
