@@ -469,6 +469,11 @@ class EventsManager {
 
 	}
 
+	/**
+	 * Load more events on button click via ajax
+	 *
+	 * @return json
+	 */
 	public function load_more_events_ajax() {
 
 		$page = (isset($_POST['pageNumber'])) ? $_POST['pageNumber'] : 0;
@@ -506,8 +511,13 @@ class EventsManager {
 
 		$html = $this->fetch_events_into_html_table( $event_posts_array );
 
-		wp_reset_postdata();
-		die( $html );
+		// Return the HTML as JSON
+		$response = array(
+			'html' => $html,
+		);
+		wp_send_json_success( $response );
+
+		wp_die();
 	}
 
 	/**
